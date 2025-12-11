@@ -256,24 +256,42 @@ class WebRTCManager {
      */
     decodeDescription(encoded) {
         try {
-            // 清理输入（移除空格和换行）
+            // 清理输入
             const cleanEncoded = encoded.trim().replace(/\s/g, '');
+
+            if (!cleanEncoded) {
+                throw new Error('连接码为空');
+            }
+
             const json = decodeURIComponent(escape(atob(cleanEncoded)));
             const data = JSON.parse(json);
 
-            // 兼容旧格式
-            if (data.type && data.sdp) {
-                return data;
+            // 验证数据
+            if (!data) {
+                throw new Error('数据解析失败');
             }
 
-            // 新格式
-            return {
-                type: data.t === 'o' ? 'offer' : 'answer',
-                sdp: data.s
-            };
+            // 兼容旧格式 (type, sdp)
+            if (data.type && data.sdp) {
+                return {
+                    type: data.type,
+                    sdp: data.sdp
+                };
+            }
+
+            // 新格式 (t, s)
+            if (data.t && data.s) {
+                return {
+                    type: data.t === 'o' ? 'offer' : 'answer',
+                    sdp: data.s
+                };
+            }
+
+            throw new Error('连接码格式无效');
+
         } catch (error) {
-            console.error('解码失败:', error);
-            throw new Error('无效的连接码');
+            console.error('解码失败:', error, encoded?.substring(0, 50));
+            throw new Error('无效的连接码，请检查是否完整复制');
         }
     }
 
