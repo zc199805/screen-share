@@ -30,7 +30,8 @@
     box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
     height: 100%;
     overflow: hidden;
 }
@@ -47,7 +48,7 @@ body {
     height: 100%;
     width: 100%;
     position: relative;
-    background: 
+    background:
         radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
         radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
         var(--bg-primary);
@@ -104,8 +105,15 @@ body {
 }
 
 @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
 }
 
 .app-title {
@@ -389,6 +397,39 @@ body {
     letter-spacing: 0.3rem;
 }
 
+/* ===== QR Code Section ===== */
+.qr-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background: white;
+    border-radius: var(--border-radius);
+    margin-bottom: 16px;
+}
+
+.qr-section canvas {
+    max-width: 200px;
+    max-height: 200px;
+}
+
+.qr-hint {
+    margin-top: 12px;
+    color: #666;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.code-section {
+    margin-top: 16px;
+}
+
+.code-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+
 /* ===== Code Container ===== */
 .code-container {
     display: flex;
@@ -664,8 +705,15 @@ body {
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
 }
 
 .controls-buttons {
@@ -752,39 +800,39 @@ body {
         flex-direction: column;
         align-items: center;
     }
-    
+
     .role-btn {
         width: 100%;
         max-width: 320px;
     }
-    
+
     .features-list {
         flex-direction: column;
         align-items: center;
     }
-    
+
     .pip-container {
         bottom: 80px;
         right: 10px;
     }
-    
+
     .pip-video-wrapper {
         width: 100px;
     }
-    
+
     .controls-bar {
         padding: 12px 16px;
     }
-    
+
     .control-btn {
         width: 44px;
         height: 44px;
     }
-    
+
     .connection-status {
         font-size: 0.8rem;
     }
-    
+
     .controls-spacer {
         display: none;
     }
@@ -794,15 +842,15 @@ body {
     .screen {
         padding: 16px;
     }
-    
+
     .app-title {
         font-size: 1.5rem;
     }
-    
+
     .role-btn {
         padding: 24px 20px;
     }
-    
+
     .step {
         padding: 16px;
     }
