@@ -34,6 +34,14 @@ class App {
         document.getElementById('btn-process-offer').addEventListener('click', () => this.processOffer());
         document.getElementById('btn-copy-answer').addEventListener('click', () => this.copyCode('viewer-answer-code'));
 
+        // 二维码功能
+        document.getElementById('btn-qr-offer').addEventListener('click', () => this.showQRCode('host-offer-code'));
+        document.getElementById('btn-qr-answer').addEventListener('click', () => this.showQRCode('viewer-answer-code'));
+        document.getElementById('btn-close-qr').addEventListener('click', () => this.closeQRModal());
+        document.getElementById('qr-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'qr-modal') this.closeQRModal();
+        });
+
         // 通话控制
         document.getElementById('btn-toggle-mute').addEventListener('click', () => this.toggleMute());
         document.getElementById('btn-toggle-camera').addEventListener('click', () => this.toggleCamera());
@@ -183,6 +191,56 @@ class App {
             document.execCommand('copy');
             this.showToast('已复制！');
         }
+    }
+
+    /**
+     * 显示二维码弹窗
+     */
+    showQRCode(textareaId) {
+        const text = document.getElementById(textareaId).value;
+        if (!text) {
+            this.showToast('没有内容生成二维码');
+            return;
+        }
+
+        const container = document.getElementById('qr-container');
+        container.innerHTML = ''; // 清除之前的二维码
+
+        // 检查连接码长度
+        if (text.length > 2953) {
+            // QR 码最大容量约 2953 字符（字母数字模式）
+            this.showToast('连接码太长，建议复制发送');
+            return;
+        }
+
+        try {
+            // 使用 qrcode.js 生成二维码
+            QRCode.toCanvas(text, {
+                width: 256,
+                margin: 2,
+                errorCorrectionLevel: 'L'  // 使用低纠错级别以提高容量
+            }, (error, canvas) => {
+                if (error) {
+                    console.error('QR生成失败:', error);
+                    this.showToast('二维码生成失败');
+                    return;
+                }
+                container.appendChild(canvas);
+            });
+
+            document.getElementById('qr-modal').classList.remove('hidden');
+        } catch (e) {
+            console.error('QR生成异常:', e);
+            this.showToast('二维码生成失败，请复制发送');
+        }
+    }
+
+    /**
+     * 关闭二维码弹窗
+     */
+    closeQRModal() {
+        document.getElementById('qr-modal').classList.add('hidden');
+        document.getElementById('qr-container').innerHTML = '';
     }
 
     toggleMute() {

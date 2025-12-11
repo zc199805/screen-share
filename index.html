@@ -93,7 +93,10 @@
                     </div>
                     <div class="code-container">
                         <textarea id="host-offer-code" readonly></textarea>
-                        <button id="btn-copy-offer" class="primary-btn">📋 一键复制</button>
+                        <div class="btn-group">
+                            <button id="btn-copy-offer" class="primary-btn">📋 一键复制</button>
+                            <button id="btn-qr-offer" class="secondary-btn">📱 二维码</button>
+                        </div>
                     </div>
                 </div>
 
@@ -145,7 +148,10 @@
                     </div>
                     <div class="code-container">
                         <textarea id="viewer-answer-code" readonly></textarea>
-                        <button id="btn-copy-answer" class="primary-btn">📋 一键复制</button>
+                        <div class="btn-group">
+                            <button id="btn-copy-answer" class="primary-btn">📋 一键复制</button>
+                            <button id="btn-qr-answer" class="secondary-btn">📱 二维码</button>
+                        </div>
                     </div>
                     <p class="step-hint">等待朋友输入后自动连接</p>
                 </div>
@@ -221,6 +227,22 @@
         <span id="toast-message"></span>
     </div>
 
+    <!-- 二维码弹窗 -->
+    <div id="qr-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>扫描二维码</h3>
+                <button id="btn-close-qr" class="close-btn">&times;</button>
+            </div>
+            <div id="qr-container"></div>
+            <p class="qr-hint">让朋友扫描此二维码获取连接码</p>
+        </div>
+    </div>
+
+    <!-- 二维码生成库 -->
+    <script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <!-- Gzip 压缩库 -->
+    <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
     <script src="webrtc.js"></script>
     <script src="app.js"></script>
 </body>

@@ -22,14 +22,31 @@ class WebRTCManager {
         this.onConnectionStateChange = null;
         this.onIceGatheringComplete = null;
 
-        // ICE 服务器配置 (使用免费的公共 STUN 服务器)
+        // ICE 服务器配置 - 使用国内可用的服务器
         this.iceServers = {
             iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' }
+                // 国内可用的 STUN 服务器
+                { urls: 'stun:stun.miwifi.com:3478' },        // 小米
+                { urls: 'stun:stun.hitv.com:3478' },          // 芒果TV  
+                { urls: 'stun:stun.chat.bilibili.com:3478' }, // B站
+                // 备用国际 STUN
+                { urls: 'stun:stun.stunprotocol.org:3478' },
+                // 免费 TURN 服务器 (metered.ca - 20GB/月免费额度)
+                {
+                    urls: 'turn:a.relay.metered.ca:80',
+                    username: 'e13b6bfce53f06c5e46a7882',
+                    credential: 'sxwgTzsLJ0Kx40Vp'
+                },
+                {
+                    urls: 'turn:a.relay.metered.ca:443',
+                    username: 'e13b6bfce53f06c5e46a7882',
+                    credential: 'sxwgTzsLJ0Kx40Vp'
+                },
+                {
+                    urls: 'turn:a.relay.metered.ca:443?transport=tcp',
+                    username: 'e13b6bfce53f06c5e46a7882',
+                    credential: 'sxwgTzsLJ0Kx40Vp'
+                }
             ]
         };
     }
@@ -237,62 +254,101 @@ class WebRTCManager {
     }
 
     /**
-     * 编码 SDP 描述 (不再压缩，保持完整以确保兼容性)
+     * 压缩 SDP - 激进模式
      */
-    encodeDescription(description) {
-        // 不再压缩SDP，保持完整以确保跨浏览器兼容性
-        const data = {
-            t: description.type === 'offer' ? 'o' : 'a',
-            s: description.sdp
-        };
-
-        const json = JSON.stringify(data);
-        // 使用 Base64 编码
-        return btoa(unescape(encodeURIComponent(json)));
+    compressSDP(sdp) {
+        return sdp
+            // 移除非必要行
+            .replace(/a=extmap:[^\r\n]+\r\n/g, '')
+            .replace(/a=rtcp-fb:[^\r\n]+\r\n/g, '')
+            .replace(/a=ssrc-group:[^\r\n]+\r\n/g, '')
+            // 简化 ssrc 只保留 cname (Chrome需要)
+            .replace(/a=ssrc:(\d+) msid:[^\r\n]+\r\n/g, '')
+            .replace(/a=ssrc:(\d+) mslabel:[^\r\n]+\r\n/g, '')
+            .replace(/a=ssrc:(\d+) label:[^\r\n]+\r\n/g, '')
+            // 移除 Google 特有扩展
+            .replace(/a=goog-[^\r\n]+\r\n/g, '')
+            // 移除空行
+            .replace(/\r\n\r\n+/g, '\r\n');
     }
 
     /**
-     * 解码 SDP 描述
+     * 编码 SDP 描述 (使用 Gzip 压缩)
+     */
+    encodeDescription(description) {
+        const compressedSDP = this.compressSDP(description.sdp);
+
+        const data = {
+            t: description.type === 'offer' ? 'o' : 'a',
+            s: compressedSDP
+        };
+        const jsonString = JSON.stringify(data);
+
+        try {
+            // 使用 pako 进行 gzip 压缩
+            if (window.pako) {
+                const binary = pako.gzip(jsonString);
+                // Uint8Array 转二进制字符串
+                let binaryString = '';
+                const len = binary.byteLength;
+                for (let i = 0; i < len; i++) {
+                    binaryString += String.fromCharCode(binary[i]);
+                }
+                // Base64 编码
+                return btoa(binaryString);
+            }
+        } catch (e) {
+            console.error('Gzip压缩失败:', e);
+        }
+
+        // 降级方案
+        return btoa(unescape(encodeURIComponent(jsonString)));
+    }
+
+    /**
+     * 解码 SDP 描述 (支持 Gzip)
      */
     decodeDescription(encoded) {
         try {
-            // 清理输入
             const cleanEncoded = encoded.trim().replace(/\s/g, '');
+            if (!cleanEncoded) throw new Error('连接码为空');
 
-            if (!cleanEncoded) {
-                throw new Error('连接码为空');
+            const binaryString = atob(cleanEncoded);
+
+            // 尝试 Gzip 解压
+            if (window.pako) {
+                try {
+                    const charData = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        charData[i] = binaryString.charCodeAt(i);
+                    }
+                    const data = JSON.parse(pako.ungzip(charData, { to: 'string' }));
+                    return this.parseData(data);
+                } catch (e) {
+                    // console.log('非Gzip数据，尝试普通解析');
+                }
             }
 
-            const json = decodeURIComponent(escape(atob(cleanEncoded)));
+            // 普通解析 (兼容旧版)
+            const json = decodeURIComponent(escape(binaryString));
             const data = JSON.parse(json);
-
-            // 验证数据
-            if (!data) {
-                throw new Error('数据解析失败');
-            }
-
-            // 兼容旧格式 (type, sdp)
-            if (data.type && data.sdp) {
-                return {
-                    type: data.type,
-                    sdp: data.sdp
-                };
-            }
-
-            // 新格式 (t, s)
-            if (data.t && data.s) {
-                return {
-                    type: data.t === 'o' ? 'offer' : 'answer',
-                    sdp: data.s
-                };
-            }
-
-            throw new Error('连接码格式无效');
+            return this.parseData(data);
 
         } catch (error) {
-            console.error('解码失败:', error, encoded?.substring(0, 50));
-            throw new Error('无效的连接码，请检查是否完整复制');
+            console.error('解码失败:', error);
+            throw new Error('无效的连接码');
         }
+    }
+
+    parseData(data) {
+        if (data.t && data.s) {
+            return {
+                type: data.t === 'o' ? 'offer' : 'answer',
+                sdp: data.s
+            };
+        }
+        if (data.type && data.sdp) return data;
+        throw new Error('数据格式错误');
     }
 
     /**
