@@ -7,25 +7,18 @@
     <meta name="description" content="Screen Share Together - 和朋友一起远程看电影">
     <meta name="theme-color" content="#6366f1">
 
-    <!-- PWA 支持 -->
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="一起看">
-
-    <!-- iOS 图标 -->
     <link rel="apple-touch-icon" href="icons/icon-152.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-192.png">
 
     <title>Screen Share Together - 一起看电影</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-
-    <!-- 二维码库 -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 
 <body>
@@ -51,11 +44,10 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="2" y="3" width="20" height="14" rx="2" />
                             <path d="M8 21h8M12 17v4" />
-                            <circle cx="12" cy="10" r="3" />
                         </svg>
                     </div>
                     <span class="role-title">共享屏幕</span>
-                    <span class="role-desc">分享我的屏幕给朋友看</span>
+                    <span class="role-desc">分享我的屏幕</span>
                 </button>
 
                 <button id="btn-viewer" class="role-btn viewer-btn">
@@ -66,19 +58,8 @@
                         </svg>
                     </div>
                     <span class="role-title">观看屏幕</span>
-                    <span class="role-desc">观看朋友分享的屏幕</span>
+                    <span class="role-desc">观看朋友的屏幕</span>
                 </button>
-            </div>
-
-            <div class="features-list">
-                <div class="feature-item">
-                    <span class="feature-icon">🔒</span>
-                    <span>完全P2P，无需服务器</span>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">📱</span>
-                    <span>支持扫码连接</span>
-                </div>
             </div>
         </section>
 
@@ -95,50 +76,35 @@
             </div>
 
             <div class="connection-steps">
-                <!-- 步骤1：开始共享 -->
                 <div id="host-step-1" class="step active">
                     <div class="step-header">
                         <span class="step-number">1</span>
                         <span class="step-title">开始共享</span>
                     </div>
-                    <p class="step-desc">点击按钮选择要共享的屏幕</p>
                     <button id="btn-start-share" class="primary-btn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="2" y="3" width="20" height="14" rx="2" />
-                            <path d="M8 21h8M12 17v4" />
-                        </svg>
                         开始共享屏幕
                     </button>
                 </div>
 
-                <!-- 步骤2：分享连接码 -->
                 <div id="host-step-2" class="step">
                     <div class="step-header">
                         <span class="step-number">2</span>
-                        <span class="step-title">让朋友扫码或复制连接码</span>
+                        <span class="step-title">复制连接码发给朋友</span>
                     </div>
-                    <div class="qr-section">
-                        <canvas id="host-qr-code"></canvas>
-                        <p class="qr-hint">让朋友用微信扫一扫，然后在浏览器打开</p>
-                    </div>
-                    <div class="code-section">
-                        <p class="code-label">或者复制连接码发给朋友：</p>
-                        <div class="code-container">
-                            <textarea id="host-offer-code" readonly placeholder="生成中..."></textarea>
-                            <button id="btn-copy-offer" class="copy-btn">复制</button>
-                        </div>
+                    <div class="code-container">
+                        <textarea id="host-offer-code" readonly></textarea>
+                        <button id="btn-copy-offer" class="primary-btn">📋 一键复制</button>
                     </div>
                 </div>
 
-                <!-- 步骤3：输入回复码 -->
                 <div id="host-step-3" class="step">
                     <div class="step-header">
                         <span class="step-number">3</span>
                         <span class="step-title">粘贴朋友的回复码</span>
                     </div>
                     <div class="code-container">
-                        <textarea id="host-answer-code" placeholder="粘贴朋友发来的回复码..."></textarea>
-                        <button id="btn-connect-host" class="primary-btn small">连接</button>
+                        <textarea id="host-answer-code" placeholder="粘贴回复码..."></textarea>
+                        <button id="btn-connect-host" class="primary-btn">🔗 连接</button>
                     </div>
                 </div>
             </div>
@@ -161,37 +127,27 @@
             </div>
 
             <div class="connection-steps">
-                <!-- 步骤1：粘贴连接码 -->
                 <div id="viewer-step-1" class="step active">
                     <div class="step-header">
                         <span class="step-number">1</span>
                         <span class="step-title">粘贴连接码</span>
                     </div>
-                    <p class="step-desc">粘贴朋友发来的连接码</p>
                     <div class="code-container">
                         <textarea id="viewer-offer-code" placeholder="粘贴连接码..."></textarea>
-                        <button id="btn-process-offer" class="primary-btn small">下一步</button>
+                        <button id="btn-process-offer" class="primary-btn">下一步</button>
                     </div>
                 </div>
 
-                <!-- 步骤2：发送回复码 -->
                 <div id="viewer-step-2" class="step">
                     <div class="step-header">
                         <span class="step-number">2</span>
-                        <span class="step-title">发送回复码给朋友</span>
+                        <span class="step-title">复制回复码发给朋友</span>
                     </div>
-                    <div class="qr-section">
-                        <canvas id="viewer-qr-code"></canvas>
-                        <p class="qr-hint">让朋友扫码获取回复码</p>
+                    <div class="code-container">
+                        <textarea id="viewer-answer-code" readonly></textarea>
+                        <button id="btn-copy-answer" class="primary-btn">📋 一键复制</button>
                     </div>
-                    <div class="code-section">
-                        <p class="code-label">或者复制回复码：</p>
-                        <div class="code-container">
-                            <textarea id="viewer-answer-code" readonly placeholder="生成中..."></textarea>
-                            <button id="btn-copy-answer" class="copy-btn">复制</button>
-                        </div>
-                    </div>
-                    <p class="step-hint" id="viewer-status">等待朋友输入回复码后自动连接...</p>
+                    <p class="step-hint">等待朋友输入后自动连接</p>
                 </div>
             </div>
         </section>
@@ -202,24 +158,16 @@
                 <div class="main-video-wrapper">
                     <video id="remote-screen" autoplay playsinline></video>
                     <div id="remote-screen-placeholder" class="video-placeholder">
-                        <div class="placeholder-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="2" y="3" width="20" height="14" rx="2" />
-                                <path d="M8 21h8M12 17v4" />
-                            </svg>
-                        </div>
                         <span>等待屏幕共享...</span>
                     </div>
                 </div>
 
                 <div class="pip-container">
-                    <div class="pip-video-wrapper remote-pip">
+                    <div class="pip-video-wrapper">
                         <video id="remote-camera" autoplay playsinline></video>
-                        <div class="pip-label">对方</div>
                     </div>
                     <div class="pip-video-wrapper local-pip">
                         <video id="local-camera" autoplay muted playsinline></video>
-                        <div class="pip-label">我</div>
                     </div>
                 </div>
             </div>
@@ -231,7 +179,7 @@
                 </div>
 
                 <div class="controls-buttons">
-                    <button id="btn-toggle-mute" class="control-btn" title="静音">
+                    <button id="btn-toggle-mute" class="control-btn">
                         <svg class="icon-unmuted" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
@@ -241,11 +189,10 @@
                             stroke-width="2">
                             <line x1="1" y1="1" x2="23" y2="23" />
                             <path d="M9 9v3a3 3 0 005.12 2.12M15 9.34V4a3 3 0 00-5.94-.6" />
-                            <path d="M17 16.95A7 7 0 015 12v-2m14 0v2a7 7 0 01-.11 1.23M12 19v4M8 23h8" />
                         </svg>
                     </button>
 
-                    <button id="btn-toggle-camera" class="control-btn" title="摄像头">
+                    <button id="btn-toggle-camera" class="control-btn">
                         <svg class="icon-camera-on" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <path d="M23 7l-7 5 7 5V7z" />
@@ -253,13 +200,11 @@
                         </svg>
                         <svg class="icon-camera-off hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
-                            <path
-                                d="M16 16v1a2 2 0 01-2 2H3a2 2 0 01-2-2V7a2 2 0 012-2h2m5.66 0H14a2 2 0 012 2v3.34l1 1L23 7v10" />
                             <line x1="1" y1="1" x2="23" y2="23" />
                         </svg>
                     </button>
 
-                    <button id="btn-end-call" class="control-btn end-call" title="结束">
+                    <button id="btn-end-call" class="control-btn end-call">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="6" x2="6" y2="18" />
                             <line x1="6" y1="6" x2="18" y2="18" />
