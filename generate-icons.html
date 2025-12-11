@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>生成应用图标</title>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+            background: #1a1a2e;
+            color: white;
+        }
+
+        .icon-preview {
+            display: inline-block;
+            margin: 10px;
+            text-align: center;
+        }
+
+        .icon-preview img {
+            display: block;
+            margin-bottom: 5px;
+            border-radius: 20%;
+        }
+
+        canvas {
+            display: none;
+        }
+
+        h1 {
+            color: #8b5cf6;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        .download-btn:hover {
+            opacity: 0.9;
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>📱 应用图标生成器</h1>
+    <p>点击按钮下载所有尺寸的图标，然后放入 icons 文件夹中</p>
+
+    <div id="previews"></div>
+
+    <button class="download-btn" onclick="downloadAll()">📥 下载所有图标</button>
+
+    <div class="instructions">
+        <h3>📋 使用说明</h3>
+        <p>1. 点击上方按钮下载所有图标</p>
+        <p>2. 将下载的图标文件放入 <code>icons</code> 文件夹</p>
+        <p>3. 确保文件名正确：icon-72.png, icon-96.png, icon-128.png, icon-144.png, icon-152.png, icon-192.png, icon-384.png,
+            icon-512.png</p>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const previews = document.getElementById('previews');
+
+        // 创建图标
+        function createIcon(size) {
+            canvas.width = size;
+            canvas.height = size;
+
+            // 背景渐变
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#6366f1');
+            gradient.addColorStop(0.5, '#8b5cf6');
+            gradient.addColorStop(1, '#a855f7');
+
+            // 圆角矩形背景
+            const radius = size * 0.2;
+            ctx.beginPath();
+            ctx.moveTo(radius, 0);
+            ctx.lineTo(size - radius, 0);
+            ctx.quadraticCurveTo(size, 0, size, radius);
+            ctx.lineTo(size, size - radius);
+            ctx.quadraticCurveTo(size, size, size - radius, size);
+            ctx.lineTo(radius, size);
+            ctx.quadraticCurveTo(0, size, 0, size - radius);
+            ctx.lineTo(0, radius);
+            ctx.quadraticCurveTo(0, 0, radius, 0);
+            ctx.closePath();
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // 屏幕外框
+            const screenX = size * 0.15;
+            const screenY = size * 0.2;
+            const screenW = size * 0.7;
+            const screenH = size * 0.42;
+            const screenRadius = size * 0.04;
+
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = size * 0.03;
+            ctx.beginPath();
+            ctx.roundRect(screenX, screenY, screenW, screenH, screenRadius);
+            ctx.stroke();
+
+            // 屏幕支架
+            ctx.fillStyle = 'white';
+            ctx.fillRect(size * 0.4, screenY + screenH, size * 0.2, size * 0.08);
+            ctx.beginPath();
+            ctx.roundRect(size * 0.3, screenY + screenH + size * 0.08, size * 0.4, size * 0.03, size * 0.015);
+            ctx.fill();
+
+            // 播放按钮
+            ctx.beginPath();
+            ctx.moveTo(size * 0.42, size * 0.33);
+            ctx.lineTo(size * 0.42, size * 0.52);
+            ctx.lineTo(size * 0.6, size * 0.425);
+            ctx.closePath();
+            ctx.fill();
+
+            return canvas.toDataURL('image/png');
+        }
+
+        // 生成所有尺寸预览
+        sizes.forEach(size => {
+            const dataUrl = createIcon(size);
+            const div = document.createElement('div');
+            div.className = 'icon-preview';
+            div.innerHTML = `<img src="${dataUrl}" width="${Math.min(size, 128)}" height="${Math.min(size, 128)}"><span>${size}x${size}</span>`;
+            previews.appendChild(div);
+        });
+
+        // 下载所有图标
+        function downloadAll() {
+            sizes.forEach((size, index) => {
+                setTimeout(() => {
+                    const dataUrl = createIcon(size);
+                    const link = document.createElement('a');
+                    link.download = `icon-${size}.png`;
+                    link.href = dataUrl;
+                    link.click();
+                }, index * 300);
+            });
+        }
+    </script>
+</body>
+
+</html>
