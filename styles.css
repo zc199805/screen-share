@@ -336,8 +336,57 @@ body {
     gap: 8px;
 }
 
-.step-hint::before {
-    content: "✓";
+/* ===== Room Code Display ===== */
+.room-code-display {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.room-code {
+    font-size: 3rem;
+    font-weight: 700;
+    font-family: 'Monaco', 'Menlo', monospace;
+    letter-spacing: 0.5rem;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 40px rgba(99, 102, 241, 0.5);
+}
+
+.room-code-input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+}
+
+.room-code-input {
+    width: 200px;
+    padding: 16px 24px;
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: 'Monaco', 'Menlo', monospace;
+    letter-spacing: 0.5rem;
+    text-align: center;
+    background: var(--bg-secondary);
+    border: 2px solid var(--accent-primary);
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+    transition: all var(--transition-fast);
+}
+
+.room-code-input:focus {
+    outline: none;
+    border-color: var(--accent-secondary);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+}
+
+.room-code-input::placeholder {
+    color: var(--text-muted);
+    letter-spacing: 0.3rem;
 }
 
 /* ===== Code Container ===== */

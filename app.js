@@ -1,5 +1,6 @@
 /**
  * Screen Share Together - 主应用逻辑
+ * 使用Firebase房间码实现简单连接
  */
 
 class App {
@@ -14,6 +15,8 @@ class App {
 
         // WebRTC 管理器
         this.rtc = window.webrtcManager;
+        // Firebase 信令
+        this.signaling = window.firebaseSignaling;
 
         // 绑定事件
         this.bindEvents();
@@ -36,12 +39,16 @@ class App {
 
         // 共享端按钮
         document.getElementById('btn-start-share').addEventListener('click', () => this.startSharing());
-        document.getElementById('btn-copy-offer').addEventListener('click', () => this.copyToClipboard('host-offer-code'));
-        document.getElementById('btn-connect-host').addEventListener('click', () => this.connectAsHost());
+        document.getElementById('btn-copy-room-code').addEventListener('click', () => this.copyRoomCode());
 
         // 观看端按钮
-        document.getElementById('btn-process-offer').addEventListener('click', () => this.processOffer());
-        document.getElementById('btn-copy-answer').addEventListener('click', () => this.copyToClipboard('viewer-answer-code'));
+        document.getElementById('btn-join-room').addEventListener('click', () => this.joinRoom());
+
+        // 房间码输入框 - 只允许数字
+        const roomCodeInput = document.getElementById('viewer-room-code');
+        roomCodeInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        });
 
         // 通话控制按钮
         document.getElementById('btn-toggle-mute').addEventListener('click', () => this.toggleMute());
@@ -71,6 +78,12 @@ class App {
         // 连接状态变化
         this.rtc.onConnectionStateChange = (state) => {
             this.updateConnectionStatus(state);
+
+            // 连接成功后切换到通话界面
+            if (state === 'connected') {
+                this.showScreen('call');
+                this.showToast('连接成功！');
+            }
         };
     }
 
@@ -89,6 +102,7 @@ class App {
      */
     goBack() {
         this.rtc.close();
+        this.signaling.cleanup();
         this.resetUI();
         this.showScreen('welcome');
     }
@@ -97,22 +111,18 @@ class App {
      * 重置 UI 状态
      */
     resetUI() {
-        // 重置共享端步骤
+        // 重置共享端
         document.querySelectorAll('#host-screen .step').forEach((step, index) => {
             step.classList.remove('active', 'completed');
             if (index === 0) step.classList.add('active');
         });
-        document.getElementById('host-offer-code').value = '';
-        document.getElementById('host-answer-code').value = '';
+        document.getElementById('host-room-code').textContent = '------';
+        document.getElementById('host-status').textContent = '等待朋友加入...';
         document.getElementById('host-preview').classList.add('hidden');
 
-        // 重置观看端步骤
-        document.querySelectorAll('#viewer-screen .step').forEach((step, index) => {
-            step.classList.remove('active', 'completed');
-            if (index === 0) step.classList.add('active');
-        });
-        document.getElementById('viewer-offer-code').value = '';
-        document.getElementById('viewer-answer-code').value = '';
+        // 重置观看端
+        document.getElementById('viewer-room-code').value = '';
+        document.getElementById('viewer-status').textContent = '';
 
         // 重置通话界面
         document.getElementById('remote-screen').srcObject = null;
@@ -137,6 +147,21 @@ class App {
      */
     async startSharing() {
         try {
+            // 检测设备是否支持屏幕共享
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+                if (isMobile) {
+                    this.showToast('📱 手机不支持屏幕共享，请使用电脑', 5000);
+                    alert('当前设备不支持屏幕共享\n\n请在电脑上打开此网址共享屏幕\n手机可以作为观看端使用');
+                } else {
+                    this.showToast('浏览器不支持屏幕共享，请使用 Chrome', 5000);
+                }
+                return;
+            }
+
+            this.showToast('正在获取屏幕共享权限...');
+
             // 获取屏幕共享
             const screenStream = await this.rtc.getScreenShare();
 
@@ -148,129 +173,109 @@ class App {
             document.getElementById('local-camera-preview').srcObject = cameraStream;
             document.getElementById('host-preview').classList.remove('hidden');
 
-            // 创建 Offer
-            this.showToast('正在生成连接码...');
-            const offerCode = await this.rtc.createOffer();
+            // 创建 WebRTC Offer
+            this.showToast('正在创建房间...');
+            const offer = await this.rtc.createOffer();
 
-            // 显示连接码
-            document.getElementById('host-offer-code').value = offerCode;
+            // 创建 Firebase 房间
+            const roomCode = await this.signaling.createRoom(offer);
+
+            // 显示房间码
+            document.getElementById('host-room-code').textContent = roomCode;
 
             // 更新步骤状态
             document.getElementById('host-step-1').classList.remove('active');
             document.getElementById('host-step-1').classList.add('completed');
             document.getElementById('host-step-2').classList.add('active');
-            document.getElementById('host-step-3').classList.add('active');
 
-            this.showToast('连接码已生成，请复制发送给朋友');
+            this.showToast('房间创建成功！房间码: ' + roomCode);
+
+            // 监听朋友加入
+            this.signaling.onAnswerReceived = async (answer) => {
+                try {
+                    document.getElementById('host-status').textContent = '朋友已加入，正在连接...';
+                    await this.rtc.handleAnswer(answer);
+
+                    // 设置本地摄像头到通话界面
+                    document.getElementById('local-camera').srcObject = this.rtc.localStream;
+
+                } catch (error) {
+                    console.error('处理回复失败:', error);
+                    this.showToast('连接失败: ' + error.message);
+                }
+            };
 
         } catch (error) {
             console.error('开始共享失败:', error);
-            this.showToast('无法开始共享: ' + error.message);
+
+            if (error.name === 'NotAllowedError') {
+                this.showToast('您取消了屏幕共享权限');
+            } else {
+                this.showToast('无法开始共享: ' + error.message);
+            }
         }
     }
 
     /**
-     * 共享端：处理回复码并连接
+     * 复制房间码
      */
-    async connectAsHost() {
-        const answerCode = document.getElementById('host-answer-code').value.trim();
+    async copyRoomCode() {
+        const roomCode = document.getElementById('host-room-code').textContent;
 
-        if (!answerCode) {
-            this.showToast('请粘贴朋友发来的回复码');
+        if (roomCode === '------') {
+            this.showToast('还没有房间码');
             return;
         }
 
         try {
-            this.showToast('正在建立连接...');
-            await this.rtc.handleAnswer(answerCode);
-
-            // 设置本地摄像头到通话界面
-            document.getElementById('local-camera').srcObject = this.rtc.localStream;
-
-            // 切换到通话界面
-            this.showScreen('call');
-            this.showToast('连接成功！');
-
+            await navigator.clipboard.writeText(roomCode);
+            this.showToast('房间码已复制: ' + roomCode);
         } catch (error) {
-            console.error('连接失败:', error);
-            this.showToast('连接失败: ' + error.message);
+            this.showToast('复制失败，请手动复制: ' + roomCode);
         }
     }
 
     /**
-     * 观看端：处理连接码
+     * 观看端：加入房间
      */
-    async processOffer() {
-        const offerCode = document.getElementById('viewer-offer-code').value.trim();
+    async joinRoom() {
+        const roomCode = document.getElementById('viewer-room-code').value.trim();
+        const statusEl = document.getElementById('viewer-status');
 
-        if (!offerCode) {
-            this.showToast('请粘贴朋友发来的连接码');
+        if (!roomCode || roomCode.length !== 6) {
+            this.showToast('请输入6位房间码');
             return;
         }
 
         try {
+            statusEl.textContent = '正在加入房间...';
+            statusEl.style.color = '#f59e0b';
+
             // 获取摄像头/麦克风
             await this.rtc.getUserMedia();
 
+            // 加入房间获取 Offer
+            const offer = await this.signaling.joinRoom(roomCode);
+
+            statusEl.textContent = '正在建立连接...';
+
             // 处理 Offer 并创建 Answer
-            this.showToast('正在生成回复码...');
-            const answerCode = await this.rtc.handleOfferAndCreateAnswer(offerCode);
+            const answer = await this.rtc.handleOfferAndCreateAnswer(offer);
 
-            // 显示回复码
-            document.getElementById('viewer-answer-code').value = answerCode;
+            // 发送 Answer
+            await this.signaling.sendAnswer(answer);
 
-            // 更新步骤状态
-            document.getElementById('viewer-step-1').classList.remove('active');
-            document.getElementById('viewer-step-1').classList.add('completed');
-            document.getElementById('viewer-step-2').classList.add('active');
-
-            this.showToast('回复码已生成，请复制发送给朋友');
+            statusEl.textContent = '连接中，请稍候...';
+            statusEl.style.color = '#22c55e';
 
             // 设置本地摄像头到通话界面
             document.getElementById('local-camera').srcObject = this.rtc.localStream;
 
-            // 监听连接成功后自动切换到通话界面
-            const checkConnection = setInterval(() => {
-                const state = this.rtc.getConnectionState();
-                if (state === 'connected') {
-                    clearInterval(checkConnection);
-                    this.showScreen('call');
-                    this.showToast('连接成功！');
-                } else if (state === 'failed' || state === 'disconnected') {
-                    clearInterval(checkConnection);
-                    this.showToast('连接失败，请重试');
-                }
-            }, 500);
-
-            // 30秒超时
-            setTimeout(() => clearInterval(checkConnection), 30000);
-
         } catch (error) {
-            console.error('处理连接码失败:', error);
-            this.showToast('无效的连接码: ' + error.message);
-        }
-    }
-
-    /**
-     * 复制到剪贴板
-     */
-    async copyToClipboard(elementId) {
-        const textarea = document.getElementById(elementId);
-        const text = textarea.value;
-
-        if (!text) {
-            this.showToast('没有可复制的内容');
-            return;
-        }
-
-        try {
-            await navigator.clipboard.writeText(text);
-            this.showToast('已复制到剪贴板');
-        } catch (error) {
-            // 降级方案
-            textarea.select();
-            document.execCommand('copy');
-            this.showToast('已复制到剪贴板');
+            console.error('加入房间失败:', error);
+            statusEl.textContent = '加入失败: ' + error.message;
+            statusEl.style.color = '#ef4444';
+            this.showToast('加入房间失败: ' + error.message);
         }
     }
 
@@ -307,6 +312,7 @@ class App {
      */
     endCall() {
         this.rtc.close();
+        this.signaling.cleanup();
         this.resetUI();
         this.showScreen('welcome');
         this.showToast('通话已结束');
@@ -356,7 +362,6 @@ class App {
         toastMessage.textContent = message;
         toast.classList.remove('hidden');
 
-        // 触发重排以启动动画
         toast.offsetHeight;
         toast.classList.add('show');
 
