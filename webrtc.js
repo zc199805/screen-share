@@ -237,66 +237,13 @@ class WebRTCManager {
     }
 
     /**
-     * 编码 SDP 描述 (压缩以便复制)
+     * 编码 SDP 描述 (不再压缩，保持完整以确保兼容性)
      */
     encodeDescription(description) {
-        // 压缩SDP - 移除不必要的行以缩短连接码
-        let sdp = description.sdp;
-
-        // 移除不必要的SDP行来缩短
-        const linesToRemove = [
-            /^a=extmap:/gm,           // 扩展映射
-            /^a=rtcp-fb:/gm,          // RTCP反馈
-            /^a=fmtp:/gm,             // 格式参数（保留关键的）
-            /^a=ssrc-group:/gm,       // SSRC组
-            /^a=msid-semantic:/gm,    // MSID语义
-        ];
-
-        // 只保留必要的行
-        const lines = sdp.split('\r\n');
-        const essentialLines = lines.filter(line => {
-            // 保留空行
-            if (line === '') return true;
-            // 保留版本、源、会话名等
-            if (line.startsWith('v=')) return true;
-            if (line.startsWith('o=')) return true;
-            if (line.startsWith('s=')) return true;
-            if (line.startsWith('t=')) return true;
-            // 保留媒体描述
-            if (line.startsWith('m=')) return true;
-            if (line.startsWith('c=')) return true;
-            // 保留ICE信息（关键！）
-            if (line.startsWith('a=ice-')) return true;
-            if (line.startsWith('a=fingerprint')) return true;
-            if (line.startsWith('a=setup')) return true;
-            if (line.startsWith('a=mid')) return true;
-            // 保留方向
-            if (line.startsWith('a=sendrecv')) return true;
-            if (line.startsWith('a=sendonly')) return true;
-            if (line.startsWith('a=recvonly')) return true;
-            // 保留候选（关键！）
-            if (line.startsWith('a=candidate')) return true;
-            if (line.startsWith('a=end-of-candidates')) return true;
-            // 保留bundlegroup
-            if (line.startsWith('a=group:BUNDLE')) return true;
-            // 保留rtpmap（编解码器）
-            if (line.startsWith('a=rtpmap')) return true;
-            // 保留SCTP
-            if (line.startsWith('a=sctp-port')) return true;
-            if (line.startsWith('a=max-message-size')) return true;
-            // 保留msid
-            if (line.startsWith('a=msid:')) return true;
-            // 保留ssrc的基本信息
-            if (line.match(/^a=ssrc:\d+ cname:/)) return true;
-
-            return false;
-        });
-
-        const compressedSdp = essentialLines.join('\r\n');
-
+        // 不再压缩SDP，保持完整以确保跨浏览器兼容性
         const data = {
-            t: description.type === 'offer' ? 'o' : 'a',  // 缩短type
-            s: compressedSdp
+            t: description.type === 'offer' ? 'o' : 'a',
+            s: description.sdp
         };
 
         const json = JSON.stringify(data);
@@ -406,3 +353,4 @@ class WebRTCManager {
 
 // 导出单例
 window.webrtcManager = new WebRTCManager();
+
