@@ -246,67 +246,26 @@ class WebRTCManager {
     }
 
     /**
-     * 处理 Answer (共享端使用)
-     */
-    async handleAnswer(encodedAnswer) {
-        const answer = this.decodeDescription(encodedAnswer);
-        await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-    }
-
-    /**
-     * 压缩 SDP - 激进模式
-     */
-    compressSDP(sdp) {
-        return sdp
-            // 移除非必要行
-            .replace(/a=extmap:[^\r\n]+\r\n/g, '')
-            .replace(/a=rtcp-fb:[^\r\n]+\r\n/g, '')
-            .replace(/a=ssrc-group:[^\r\n]+\r\n/g, '')
-            // 简化 ssrc 只保留 cname (Chrome需要)
-            .replace(/a=ssrc:(\d+) msid:[^\r\n]+\r\n/g, '')
-            .replace(/a=ssrc:(\d+) mslabel:[^\r\n]+\r\n/g, '')
-            .replace(/a=ssrc:(\d+) label:[^\r\n]+\r\n/g, '')
-            // 移除 Google 特有扩展
-            .replace(/a=goog-[^\r\n]+\r\n/g, '')
-            // 移除空行
-            .replace(/\r\n\r\n+/g, '\r\n');
-    }
-
-    /**
-     * 编码 SDP 描述 (使用 Gzip 压缩)
+     * 编码 SDP 描述 (使用 LZString 压缩)
      */
     encodeDescription(description) {
-        const compressedSDP = this.compressSDP(description.sdp);
-
-        const data = {
-            t: description.type === 'offer' ? 'o' : 'a',
-            s: compressedSDP
-        };
-        const jsonString = JSON.stringify(data);
-
         try {
-            // 使用 pako 进行 gzip 压缩
-            if (window.pako) {
-                const binary = pako.gzip(jsonString);
-                // Uint8Array 转二进制字符串
-                let binaryString = '';
-                const len = binary.byteLength;
-                for (let i = 0; i < len; i++) {
-                    binaryString += String.fromCharCode(binary[i]);
-                }
-                // Base64 编码
-                return btoa(binaryString);
-            }
-        } catch (e) {
-            console.error('Gzip压缩失败:', e);
-        }
+            const data = {
+                t: description.type === 'offer' ? 'o' : 'a',
+                s: description.sdp
+            };
+            const json = JSON.stringify(data);
 
-        // 降级方案
-        return btoa(unescape(encodeURIComponent(jsonString)));
+            // 使用 LZString 压缩并转 Base64，比单纯 Base64 短很多
+            return LZString.compressToBase64(json);
+        } catch (e) {
+            console.error('编码失败:', e);
+            throw e;
+        }
     }
 
     /**
-     * 解码 SDP 描述 (支持 Gzip)
+     * 解码 SDP 描述 (使用 LZString 解压)
      */
     decodeDescription(encoded) {
         try {
